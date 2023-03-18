@@ -1,5 +1,6 @@
-from skimage.measure import label
+import skimage.measure
 from PIL import Image
+from skimage import measure
 from sklearn.cluster import KMeans
 from time import time
 import numpy as np
@@ -69,7 +70,7 @@ def create_thumbnail(image_path, colours, frequencies):
     width = image.width
     print("raw image has (height, width) = ({}, {})".format(height, width))
 
-    small_width, small_height = 200,200
+    small_width, small_height = 200, 200
 
     thumb = np.asarray(image.resize((small_width, small_height)))
 
@@ -84,7 +85,7 @@ def create_thumbnail(image_path, colours, frequencies):
         print(f"{colour}: {frequency}")
 
         # make a mask of the thumbnail by pixels that are the closest to the current colour
-        mask = np.zeros(thumb.shape, dtype=bool)
+        mask = np.zeros(thumb.shape[:2], dtype=bool)
         for i in range(thumb.shape[0]):
             for j in range(thumb.shape[1]):
                 if get_closest_colour(thumb[i, j], colours) == colour:
@@ -99,9 +100,9 @@ def create_thumbnail(image_path, colours, frequencies):
         plt.show()
 
         # now that we have the mask, iterate over the distinct areas in the mast
-        img_labeled, island_count = label(mask.astype(np.uint8), return_num=True, connectivity=1)
+        img_labeled, island_count = measure.label(mask.astype(np.uint8), return_num=True, connectivity=1)
         print("found {} islands in the mask".format(island_count))
-        count = 0
+        print('mask shape: {}'.format(mask.shape))
         for i in range(island_count + 1):
             # show the island with the index i
             current_island = img_labeled == i
@@ -111,10 +112,12 @@ def create_thumbnail(image_path, colours, frequencies):
 
             # skip if the number of pixels on the island is less than a percentage of the total number of pixels
             if np.sum(current_island) < int(small_width * small_height * 0.05):
-                print(f"island index {i} is below 5% of the total number of pixels, skipping")
                 continue
 
             print(f"island index {i} has {np.sum(current_island)} pixels, finding polyline")
+
+            contours = measure.find_contours(current_island.astype(np.uint8), 0)
+            print(contours)
 
             plt.imshow(current_island.astype(float))
             plt.title(f"island index {i}")
