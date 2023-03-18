@@ -9,6 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 
+from ..utils import ImageAnalyzer, ImageDetails
+
 
 def get_closest_colour(colour, colour_list):
     """return the colour in the colour_list closest to colour"""
@@ -16,7 +18,7 @@ def get_closest_colour(colour, colour_list):
     return colour_list[np.argmin(distances)]
 
 
-class ColourPalette:
+class ColourPalette(ImageAnalyzer):
     """represent an image colour palette
 
     Attributes:
@@ -28,6 +30,7 @@ class ColourPalette:
     """
 
     def __init__(self, image_path):
+        super().__init__(image_path)
         print(f'getting colours from {image_path}')
         self.image_path = image_path
         self.im = np.asarray(Image.open(image_path))[:, :, :3]
@@ -44,6 +47,8 @@ class ColourPalette:
 
         self.colours = get_int_colours(self.centroids)
 
+        self.thumbnail = make_thumbnail(image_path, self.colours, self.frequencies)
+
     def plot_image(self):
         plt.imshow(self.im)
         plt.show()
@@ -52,16 +57,16 @@ class ColourPalette:
         plot_colours_frequencies(self.colours, self.frequencies)
         plt.show()
 
-    def export_thumbnail(self, output_path):
-        print(f'exporting thumbnail to {output_path}')
-        export_thumbnail(self.image_path, self.colours, self.frequencies, output_path)
+    def to_json(self) -> ImageDetails:
+        return ImageDetails(width=self.im.shape[1], height=self.im.shape[0], file_name=self.file_name,
+                            colours=self.colours, thumbnail=self.thumbnail.tostring(), frequencies=self.frequencies)
 
 
-def export_thumbnail(image_path, colours, frequencies, out_path):
+def make_thumbnail(image_path, colours, frequencies) -> svgwrite.Drawing:
     """create a thumbnail from an image based on a colour palette and how common those colours are
 
     """
-    VERBOSE=False
+    VERBOSE = False
 
     # load the image with PIL
     image = Image.open(image_path)
@@ -82,7 +87,7 @@ def export_thumbnail(image_path, colours, frequencies, out_path):
         small_width = max_dimension
         small_height = int(small_width * aspect_ratio)
     max_distance = 2
-    svg = svgwrite.Drawing(out_path, size=(small_width, small_height))
+    svg = svgwrite.Drawing("tmp.svg", size=(small_width, small_height))
     thumb = np.asarray(image.resize((small_width, small_height)))
 
     if VERBOSE:
@@ -153,8 +158,7 @@ def export_thumbnail(image_path, colours, frequencies, out_path):
                 write_compressed_contour_to_svg(colour, contour, svg, thumb, max_distance)
 
     # save the SVG
-    print("saving SVG to {}".format(out_path))
-    svg.save()
+    return svg
 
 
 def write_compressed_contour_to_svg(colour, contour, svg, thumb, max_distance):
@@ -303,8 +307,8 @@ if __name__ == '__main__':
     # palette = ColourPalette(image_path)
     # palette.export_thumbnail("buller.svg")
 
-    images_dir = "../images"
-    thumbnail_dir = "../thumbnails"
+    images_dir = "../../images"
+    thumbnail_dir = "../../thumbnails"
 
     if not os.path.exists(thumbnail_dir):
         os.makedirs(thumbnail_dir)
