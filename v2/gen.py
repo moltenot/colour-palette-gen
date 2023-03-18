@@ -72,7 +72,7 @@ def create_thumbnail(image_path, colours, frequencies):
     print("raw image has (height, width) = ({}, {})".format(height, width))
 
     small_width, small_height = 200, 200
-
+    svg = svgwrite.Drawing("temp.svg", size=(small_width, small_height))
     thumb = np.asarray(image.resize((small_width, small_height)))
 
     plt.imshow(thumb)
@@ -125,24 +125,22 @@ def create_thumbnail(image_path, colours, frequencies):
 
             contours = measure.find_contours(padded.astype(np.uint8), 0)
             for contour in contours:
-                # subtract (2,2) from each point in the contour
-                contour -= np.array([2, 2])
-                print(f"found {len(contours)} contours")
+                write_compressed_contour_to_svg(colour, contour, svg, thumb)
 
-                show_contours_on_image([contour], thumb)
 
-                # reduce the number of points in the contours with the approximate_polygon method
-                approx_polygon = measure.approximate_polygon(contour, 10)
-                print(f"amount of compression: {len(approx_polygon) / len(contour)}")
-                show_contours_on_image([approx_polygon], thumb)
 
-                # add the contour to the SVG
-                svg = svgwrite.Drawing("temp.svg", size=(small_width, small_height))
-                x,y = approx_polygon.T
-                svg.add(svgwrite.shapes.Polygon(np.stack([y,x], axis=1), fill=f"rgb({colour[0]}, {colour[1]}, {colour[2]})"))
-                svg.save()
-
-        break
+def write_compressed_contour_to_svg(colour, contour, svg, thumb):
+    # subtract (2,2) from each point in the contour
+    contour -= np.array([2, 2])
+    show_contours_on_image([contour], thumb)
+    # reduce the number of points in the contours with the approximate_polygon method
+    approx_polygon = measure.approximate_polygon(contour, 10)
+    print(f"amount of compression: {len(approx_polygon) / len(contour)}")
+    show_contours_on_image([approx_polygon], thumb)
+    # add the contour to the SVG
+    x, y = approx_polygon.T
+    svg.add(svgwrite.shapes.Polygon(np.stack([y, x], axis=1), fill=f"rgb({colour[0]}, {colour[1]}, {colour[2]})"))
+    svg.save()
 
 
 def show_contours_on_image(contours, thumb):
