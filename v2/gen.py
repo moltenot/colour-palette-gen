@@ -1,3 +1,5 @@
+import os
+
 import svgwrite
 from PIL import Image
 from skimage import measure
@@ -52,13 +54,14 @@ class ColourPalette:
 
     def export_thumbnail(self, output_path):
         print(f'exporting thumbnail to {output_path}')
-        create_thumbnail(self.image_path, self.colours, self.frequencies, output_path)
+        export_thumbnail(self.image_path, self.colours, self.frequencies, output_path)
 
 
-def create_thumbnail(image_path, colours, frequencies, out_path):
+def export_thumbnail(image_path, colours, frequencies, out_path):
     """create a thumbnail from an image based on a colour palette and how common those colours are
 
     """
+    VERBOSE=False
 
     # load the image with PIL
     image = Image.open(image_path)
@@ -66,9 +69,18 @@ def create_thumbnail(image_path, colours, frequencies, out_path):
     # save the height and width of the image, so we have the aspect ratio for later
     height = image.height
     width = image.width
-    print("raw image has (height, width) = ({}, {})".format(height, width))
+    if VERBOSE:
+        print("raw image has (height, width) = ({}, {})".format(height, width))
 
-    small_width, small_height = 30, 30
+    max_dimension = 30
+    # set small_width and small_height to keep the aspect ratio but be no longer larger than max_dimension
+    aspect_ratio = height / width
+    if height > width:
+        small_height = max_dimension
+        small_width = int(small_height / aspect_ratio)
+    else:
+        small_width = max_dimension
+        small_height = int(small_width * aspect_ratio)
     max_distance = 2
     svg = svgwrite.Drawing(out_path, size=(small_width, small_height))
     thumb = np.asarray(image.resize((small_width, small_height)))
@@ -81,7 +93,8 @@ def create_thumbnail(image_path, colours, frequencies, out_path):
     colour_frequencies.sort(key=lambda x: x[1], reverse=True)
 
     for colour, frequency in colour_frequencies:
-        print(f"{colour}: {frequency}")
+        if VERBOSE:
+            print(f"{colour}: {frequency}")
 
         # make a mask of the thumbnail by pixels that are the closest to the current colour
         mask = np.zeros(thumb.shape[:2], dtype=bool)
@@ -95,8 +108,9 @@ def create_thumbnail(image_path, colours, frequencies, out_path):
         # convert the binary mask to an image to show it
         tmp = mask.astype(float)
         plt.imshow(tmp)
-        plt.title("mask for the colour {}".format(colour))
-        plt.show()
+        if VERBOSE:
+            plt.title("mask for the colour {}".format(colour))
+            plt.show()
 
         # expand the area of the mask
         new_mask = mask.copy()
@@ -107,7 +121,8 @@ def create_thumbnail(image_path, colours, frequencies, out_path):
 
         # now that we have the mask, iterate over the distinct areas in the mast
         img_labeled, island_count = measure.label(mask.astype(np.uint8), return_num=True, connectivity=1)
-        print("found {} islands in the mask".format(island_count))
+        if VERBOSE:
+            print("found {} islands in the mask".format(island_count))
         for i in range(island_count + 1):
             # show the island with the index i
             current_island = img_labeled == i
@@ -119,15 +134,20 @@ def create_thumbnail(image_path, colours, frequencies, out_path):
             if np.sum(current_island) < int(small_width * small_height * 0.05):
                 continue
 
-            print(f"island index {i} has {np.sum(current_island)} pixels, finding polyline")
+            if VERBOSE:
+                print(f"island index {i} has {np.sum(current_island)} pixels, finding polyline")
 
             # pad with 2px on all side before finding contours, so we can contour the edge of the image
             padded = np.pad(current_island, 2)
-            plt.imshow(padded)
-            plt.show()
+
+            if VERBOSE:
+                plt.imshow(padded)
+                plt.show()
 
             contours = measure.find_contours(padded.astype(np.uint8), 0)
-            print(f"found {len(contours)} contours on this island")
+            if VERBOSE:
+                print(f"found {len(contours)} contours on this island")
+
             for contour in contours:
                 write_compressed_contour_to_svg(colour, contour, svg, thumb, max_distance)
 
@@ -278,6 +298,18 @@ def plot_colours(colours: list[int]):
 
 
 if __name__ == '__main__':
-    image_path = "../images/1_buller.jpg"
-    palette = ColourPalette(image_path)
-    palette.export_thumbnail("buller.svg")
+    # image_path = "../images/1_buller.jpg"
+    # palette = ColourPalette(image_path)
+    # palette.export_thumbnail("buller.svg")
+
+    images_dir = "../images"
+    thumbnail_dir = "../thumbnails"
+
+    if not os.path.exists(thumbnail_dir):
+        os.makedirs(thumbnail_dir)
+
+    # export thumbnails for each image in the images directory
+    for image_name in os.listdir(images_dir):
+        image_path = os.path.join(images_dir, image_name)
+        palette = ColourPalette(image_path)
+        palette.export_thumbnail(os.path.join(thumbnail_dir, os.path.basename(image_name) + ".svg"))
