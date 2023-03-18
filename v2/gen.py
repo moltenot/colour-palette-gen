@@ -71,7 +71,8 @@ def create_thumbnail(image_path, colours, frequencies):
     width = image.width
     print("raw image has (height, width) = ({}, {})".format(height, width))
 
-    small_width, small_height = 200, 200
+    small_width, small_height = 30, 30
+    max_distance = 2
     svg = svgwrite.Drawing("temp.svg", size=(small_width, small_height))
     thumb = np.asarray(image.resize((small_width, small_height)))
 
@@ -100,10 +101,16 @@ def create_thumbnail(image_path, colours, frequencies):
         plt.title("mask for the colour {}".format(colour))
         plt.show()
 
+        # expand the area of the mask
+        new_mask = mask.copy()
+        new_mask[:,1:] = mask[:,1:] + mask[:,:-1]
+        new_mask[1:,:] = new_mask[1:,:] + new_mask[:-1,:]
+
+        mask = new_mask
+
         # now that we have the mask, iterate over the distinct areas in the mast
         img_labeled, island_count = measure.label(mask.astype(np.uint8), return_num=True, connectivity=1)
         print("found {} islands in the mask".format(island_count))
-        print('mask shape: {}'.format(mask.shape))
         for i in range(island_count + 1):
             # show the island with the index i
             current_island = img_labeled == i
@@ -118,25 +125,29 @@ def create_thumbnail(image_path, colours, frequencies):
             print(f"island index {i} has {np.sum(current_island)} pixels, finding polyline")
 
             # pad with 2px on all side before finding contours, so we can contour the edge of the image
-            height, width = current_island.shape
             padded = np.pad(current_island, 2)
             plt.imshow(padded)
             plt.show()
 
             contours = measure.find_contours(padded.astype(np.uint8), 0)
+            print(f"found {len(contours)} contours on this island")
             for contour in contours:
-                write_compressed_contour_to_svg(colour, contour, svg, thumb)
+                write_compressed_contour_to_svg(colour, contour, svg, thumb, max_distance)
 
 
 
-def write_compressed_contour_to_svg(colour, contour, svg, thumb):
+def write_compressed_contour_to_svg(colour, contour, svg, thumb, max_distance):
     # subtract (2,2) from each point in the contour
     contour -= np.array([2, 2])
-    show_contours_on_image([contour], thumb)
-    # reduce the number of points in the contours with the approximate_polygon method
-    approx_polygon = measure.approximate_polygon(contour, 10)
-    print(f"amount of compression: {len(approx_polygon) / len(contour)}")
-    show_contours_on_image([approx_polygon], thumb)
+    print(f"contour has {len(contour)} points")
+    if len(contour) < 4:
+        print("contour is too small to compress")
+        approx_polygon = contour
+    else:
+        # show_contours_on_image([contour], thumb)
+        # reduce the number of points in the contours with the approximate_polygon method
+        approx_polygon = measure.approximate_polygon(contour, max_distance)
+        # show_contours_on_image([approx_polygon], thumb)
     # add the contour to the SVG
     x, y = approx_polygon.T
     svg.add(svgwrite.shapes.Polygon(np.stack([y, x], axis=1), fill=f"rgb({colour[0]}, {colour[1]}, {colour[2]})"))
