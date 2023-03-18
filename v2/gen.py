@@ -1,3 +1,4 @@
+from skimage.measure import label
 from PIL import Image
 from sklearn.cluster import KMeans
 from time import time
@@ -68,7 +69,9 @@ def create_thumbnail(image_path, colours, frequencies):
     width = image.width
     print("raw image has (height, width) = ({}, {})".format(height, width))
 
-    thumb = np.asarray(image.resize((200, 200)))
+    small_width, small_height = 200,200
+
+    thumb = np.asarray(image.resize((small_width, small_height)))
 
     plt.imshow(thumb)
     plt.show()
@@ -81,27 +84,42 @@ def create_thumbnail(image_path, colours, frequencies):
         print(f"{colour}: {frequency}")
 
         # make a mask of the thumbnail by pixels that are the closest to the current colour
-
-        num_trues = 0
-        num_falses = 0
-
         mask = np.zeros(thumb.shape, dtype=bool)
         for i in range(thumb.shape[0]):
             for j in range(thumb.shape[1]):
                 if get_closest_colour(thumb[i, j], colours) == colour:
                     mask[i, j] = True
-                    num_trues += 1
                 else:
                     mask[i, j] = False
-                    num_falses += 1
-
-        print("trues", num_trues, "falses", num_falses)
 
         # convert the binary mask to an image to show it
         tmp = mask.astype(float)
-        print(np.unique(tmp))
         plt.imshow(tmp)
+        plt.title("mask for the colour {}".format(colour))
         plt.show()
+
+        # now that we have the mask, iterate over the distinct areas in the mast
+        img_labeled, island_count = label(mask.astype(np.uint8), return_num=True, connectivity=1)
+        print("found {} islands in the mask".format(island_count))
+        count = 0
+        for i in range(island_count + 1):
+            # show the island with the index i
+            current_island = img_labeled == i
+
+            # intersect with the mask
+            current_island = np.logical_and(current_island, mask)
+
+            # skip if the number of pixels on the island is less than a percentage of the total number of pixels
+            if np.sum(current_island) < int(small_width * small_height * 0.05):
+                print(f"island index {i} is below 5% of the total number of pixels, skipping")
+                continue
+
+            print(f"island index {i} has {np.sum(current_island)} pixels, finding polyline")
+
+            plt.imshow(current_island.astype(float))
+            plt.title(f"island index {i}")
+            plt.show()
+
         break
 
 
