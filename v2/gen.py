@@ -1,4 +1,3 @@
-import skimage.measure
 import svgwrite
 from PIL import Image
 from skimage import measure
@@ -28,6 +27,7 @@ class ColourPalette:
 
     def __init__(self, image_path):
         print(f'getting colours from {image_path}')
+        self.image_path = image_path
         self.im = np.asarray(Image.open(image_path))[:, :, :3]
         flat = decimate_image(self.im, 5000)
 
@@ -42,9 +42,6 @@ class ColourPalette:
 
         self.colours = get_int_colours(self.centroids)
 
-        # make a thumbnail
-        self.thumbnail = create_thumbnail(image_path, self.colours, self.frequencies)
-
     def plot_image(self):
         plt.imshow(self.im)
         plt.show()
@@ -53,12 +50,12 @@ class ColourPalette:
         plot_colours_frequencies(self.colours, self.frequencies)
         plt.show()
 
-    def plot_thumbnail(self):
-        plt.imshow(self.thumbnail_mask)
-        plt.show()
+    def export_thumbnail(self, output_path):
+        print(f'exporting thumbnail to {output_path}')
+        create_thumbnail(self.image_path, self.colours, self.frequencies, output_path)
 
 
-def create_thumbnail(image_path, colours, frequencies):
+def create_thumbnail(image_path, colours, frequencies, out_path):
     """create a thumbnail from an image based on a colour palette and how common those colours are
 
     """
@@ -73,7 +70,7 @@ def create_thumbnail(image_path, colours, frequencies):
 
     small_width, small_height = 30, 30
     max_distance = 2
-    svg = svgwrite.Drawing("temp.svg", size=(small_width, small_height))
+    svg = svgwrite.Drawing(out_path, size=(small_width, small_height))
     thumb = np.asarray(image.resize((small_width, small_height)))
 
     plt.imshow(thumb)
@@ -103,8 +100,8 @@ def create_thumbnail(image_path, colours, frequencies):
 
         # expand the area of the mask
         new_mask = mask.copy()
-        new_mask[:,1:] = mask[:,1:] + mask[:,:-1]
-        new_mask[1:,:] = new_mask[1:,:] + new_mask[:-1,:]
+        new_mask[:, 1:] = mask[:, 1:] + mask[:, :-1]
+        new_mask[1:, :] = new_mask[1:, :] + new_mask[:-1, :]
 
         mask = new_mask
 
@@ -134,6 +131,9 @@ def create_thumbnail(image_path, colours, frequencies):
             for contour in contours:
                 write_compressed_contour_to_svg(colour, contour, svg, thumb, max_distance)
 
+    # save the SVG
+    print("saving SVG to {}".format(out_path))
+    svg.save()
 
 
 def write_compressed_contour_to_svg(colour, contour, svg, thumb, max_distance):
@@ -151,7 +151,6 @@ def write_compressed_contour_to_svg(colour, contour, svg, thumb, max_distance):
     # add the contour to the SVG
     x, y = approx_polygon.T
     svg.add(svgwrite.shapes.Polygon(np.stack([y, x], axis=1), fill=f"rgb({colour[0]}, {colour[1]}, {colour[2]})"))
-    svg.save()
 
 
 def show_contours_on_image(contours, thumb):
@@ -281,3 +280,4 @@ def plot_colours(colours: list[int]):
 if __name__ == '__main__':
     image_path = "../images/1_buller.jpg"
     palette = ColourPalette(image_path)
+    palette.export_thumbnail("buller.svg")
