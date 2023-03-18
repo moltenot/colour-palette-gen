@@ -3,8 +3,13 @@ from sklearn.cluster import KMeans
 from time import time
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.cluster.vq import kmeans
 import matplotlib.colors as colors
+
+
+def get_closest_colour(colour, colour_list):
+    """return the colour in the colour_list closest to colour"""
+    distances = [np.linalg.norm(c - colour) for c in colour_list]
+    return colour_list[np.argmin(distances)]
 
 
 class ColourPalette:
@@ -34,6 +39,16 @@ class ColourPalette:
 
         self.colours = get_int_colours(self.centroids)
 
+        # make a thumbnail
+        self.thumbnail = Image.open(image_path).resize((200, 200))
+
+        # label each pixel in the thumbnail by which colour is closest to it
+        self.thumbnail = np.asarray(self.thumbnail)[:, :, :3]
+        self.thumbnail_mask = np.zeros(self.thumbnail.shape, dtype=int)
+        for i in range(self.thumbnail.shape[0]):
+            for j in range(self.thumbnail.shape[1]):
+                self.thumbnail_mask[i, j, :] = get_closest_colour(self.thumbnail[i, j], self.colours)
+
     def plot_image(self):
         plt.imshow(self.im)
         plt.show()
@@ -42,8 +57,8 @@ class ColourPalette:
         plot_colours_frequencies(self.colours, self.frequencies)
         plt.show()
 
-    def plot_labels(self):
-        plt.imshow(self.labels)
+    def plot_thumbnail(self):
+        plt.imshow(self.thumbnail_mask)
         plt.show()
 
 
@@ -163,6 +178,6 @@ if __name__ == '__main__':
     image_path = "../images/1_buller.jpg"
     palette = ColourPalette(image_path)
 
-    palette.plot_image()
-    palette.plot_palette()
-    palette.plot_labels()
+    # palette.plot_image()
+    # palette.plot_palette()
+    palette.plot_thumbnail()
