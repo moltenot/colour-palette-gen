@@ -116,14 +116,39 @@ def create_thumbnail(image_path, colours, frequencies):
 
             print(f"island index {i} has {np.sum(current_island)} pixels, finding polyline")
 
-            contours = measure.find_contours(current_island.astype(np.uint8), 0)
-            print(contours)
-
-            plt.imshow(current_island.astype(float))
-            plt.title(f"island index {i}")
+            # pad with 2px on all side before finding contours, so we can contour the edge of the image
+            height, width = current_island.shape
+            padded = np.pad(current_island, 2)
+            plt.imshow(padded)
             plt.show()
 
+            contours = measure.find_contours(padded.astype(np.uint8), 0)
+            assert len(contours) == 1, "found more than one contour"
+            print(contours)
+            print(f"found {len(contours)} contours")
+
+            show_contours_on_image(contours, thumb)
+
+            # reduce the number of points in the contours with the approximate_polygon method
+            approx_polygon = measure.approximate_polygon(contours[0], 10)
+            print(f"amount of compression: { len(approx_polygon)/len(contours[0])}")
+            show_contours_on_image([approx_polygon], thumb)
+
+
+
         break
+
+
+def show_contours_on_image(contours, thumb):
+    # Display the image and plot all contours found
+    fig, ax = plt.subplots()
+    ax.imshow(thumb, cmap=plt.cm.gray)
+    for contour in contours:
+        ax.plot(contour[:, 1], contour[:, 0], linewidth=2)
+    ax.axis('image')
+    ax.set_xticks([])
+    ax.set_yticks([])
+    plt.show()
 
 
 def decimate_image(image: np.ndarray, N: int) -> np.ndarray:
