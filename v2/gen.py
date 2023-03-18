@@ -8,7 +8,7 @@ import matplotlib.colors as colors
 
 def get_closest_colour(colour, colour_list):
     """return the colour in the colour_list closest to colour"""
-    distances = [np.linalg.norm(c - colour) for c in colour_list]
+    distances = [np.linalg.norm(np.array(c) - np.array(colour)) for c in colour_list]
     return colour_list[np.argmin(distances)]
 
 
@@ -40,14 +40,7 @@ class ColourPalette:
         self.colours = get_int_colours(self.centroids)
 
         # make a thumbnail
-        self.thumbnail = Image.open(image_path).resize((200, 200))
-
-        # label each pixel in the thumbnail by which colour is closest to it
-        self.thumbnail = np.asarray(self.thumbnail)[:, :, :3]
-        self.thumbnail_mask = np.zeros(self.thumbnail.shape, dtype=int)
-        for i in range(self.thumbnail.shape[0]):
-            for j in range(self.thumbnail.shape[1]):
-                self.thumbnail_mask[i, j, :] = get_closest_colour(self.thumbnail[i, j], self.colours)
+        self.thumbnail = create_thumbnail(image_path, self.colours, self.frequencies)
 
     def plot_image(self):
         plt.imshow(self.im)
@@ -60,6 +53,56 @@ class ColourPalette:
     def plot_thumbnail(self):
         plt.imshow(self.thumbnail_mask)
         plt.show()
+
+
+def create_thumbnail(image_path, colours, frequencies):
+    """create a thumbnail from an image based on a colour palette and how common those colours are
+
+    """
+
+    # load the image with PIL
+    image = Image.open(image_path)
+
+    # save the height and width of the image, so we have the aspect ratio for later
+    height = image.height
+    width = image.width
+    print("raw image has (height, width) = ({}, {})".format(height, width))
+
+    thumb = np.asarray(image.resize((200, 200)))
+
+    plt.imshow(thumb)
+    plt.show()
+
+    # sort the colours by frequency, most common first
+    colour_frequencies = list(zip(colours, frequencies))
+    colour_frequencies.sort(key=lambda x: x[1], reverse=True)
+
+    for colour, frequency in colour_frequencies:
+        print(f"{colour}: {frequency}")
+
+        # make a mask of the thumbnail by pixels that are the closest to the current colour
+
+        num_trues = 0
+        num_falses = 0
+
+        mask = np.zeros(thumb.shape, dtype=bool)
+        for i in range(thumb.shape[0]):
+            for j in range(thumb.shape[1]):
+                if get_closest_colour(thumb[i, j], colours) == colour:
+                    mask[i, j] = True
+                    num_trues += 1
+                else:
+                    mask[i, j] = False
+                    num_falses += 1
+
+        print("trues", num_trues, "falses", num_falses)
+
+        # convert the binary mask to an image to show it
+        tmp = mask.astype(float)
+        print(np.unique(tmp))
+        plt.imshow(tmp)
+        plt.show()
+        break
 
 
 def decimate_image(image: np.ndarray, N: int) -> np.ndarray:
@@ -177,7 +220,3 @@ def plot_colours(colours: list[int]):
 if __name__ == '__main__':
     image_path = "../images/1_buller.jpg"
     palette = ColourPalette(image_path)
-
-    # palette.plot_image()
-    # palette.plot_palette()
-    palette.plot_thumbnail()
