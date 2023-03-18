@@ -85,8 +85,9 @@ def export_thumbnail(image_path, colours, frequencies, out_path):
     svg = svgwrite.Drawing(out_path, size=(small_width, small_height))
     thumb = np.asarray(image.resize((small_width, small_height)))
 
-    plt.imshow(thumb)
-    plt.show()
+    if VERBOSE:
+        plt.imshow(thumb)
+        plt.show()
 
     # sort the colours by frequency, most common first
     colour_frequencies = list(zip(colours, frequencies))
@@ -312,4 +313,4 @@ if __name__ == '__main__':
     for image_name in os.listdir(images_dir):
         image_path = os.path.join(images_dir, image_name)
         palette = ColourPalette(image_path)
-        palette.export_thumbnail(os.path.join(thumbnail_dir, os.path.basename(image_name) + ".svg"))
+        palette.export_thumbnail(os.path.join(thumbnail_dir, image_name.split(".")[0] + ".svg"))
