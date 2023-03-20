@@ -16,6 +16,8 @@ from palettegen.utils import ImageAnalyzer, ImageDetails
 
 def get_closest_colour(colour, colour_list):
     """return the colour in the colour_list closest to colour"""
+    assert len(colour) == 3, "colour must be a 3-tuple"
+    assert len(colour_list) > 0, "colour_list must not be empty"
     distances = [np.linalg.norm(np.array(c) - np.array(colour)) for c in colour_list]
     return colour_list[np.argmin(distances)]
 
@@ -108,7 +110,7 @@ def make_thumbnail(image_path, colours, frequencies) -> svgwrite.Drawing:
         mask = np.zeros(thumb.shape[:2], dtype=bool)
         for i in range(thumb.shape[0]):
             for j in range(thumb.shape[1]):
-                if get_closest_colour(thumb[i, j], colours) == colour:
+                if get_closest_colour(thumb[i, j][:3], colours) == colour:
                     mask[i, j] = True
                 else:
                     mask[i, j] = False
