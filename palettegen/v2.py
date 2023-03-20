@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 
-from utils import ImageAnalyzer, ImageDetails
+from palettegen.utils import ImageAnalyzer, ImageDetails
 
 
 def get_closest_colour(colour, colour_list):
