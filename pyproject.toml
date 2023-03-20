@@ -1,17 +1,12 @@
 [build-system]
-requires = ["flit_core>=3.4"]
+requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "palette-gen"
-version = "0.0.1"
-authors = [
-    { name="Theo Molteno", email="theo@molteno.net" },
-]
-description = "A package to extract colour palettes, and generate thumbnails from images"
+name = "palettegen"
+authors = [{name = "Theo Molteno", email = "theo@molteno.net"}]
 readme = "README.md"
-requires-python = ">=3.7"
+dynamic = ["version", "description"]
 
 [project.urls]
-"Homepage" = "https://github.com/moltenot/colour-palette-gen"
-"Bug Tracker" = "https://github.com/moltenot/colour-palette-gen/issues"
+Home = "https://github.com/moltenot/colour-palette-gen"
