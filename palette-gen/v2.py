@@ -1,3 +1,4 @@
+"""version 2 of the colour palette generation algorithm"""
 import json
 import os
 
