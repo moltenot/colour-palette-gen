@@ -22,13 +22,14 @@ class ImageDetails:
             'thumbnail': self.thumbnail,
         }
 
+
 class ImageAnalyzer(ABC):
     image_path: str
     file_name: str  # file name without extension
 
     def __init__(self, image_path: str):
         self.image_path = image_path
-        self.file_name = os.path.basename(self.image_path).split('.')[0]
+        self.file_name = os.path.basename(self.image_path)
         pass
 
     @abstractmethod
