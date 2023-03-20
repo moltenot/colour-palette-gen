@@ -12,10 +12,19 @@ class ImageDetails:
     frequencies: list[float]
     thumbnail: str  # SVG
 
+    def to_json(self) -> dict:
+        return {
+            'width': self.width,
+            'height': self.height,
+            'file_name': self.file_name,
+            'colours': self.colours,
+            'frequencies': self.frequencies,
+            'thumbnail': self.thumbnail,
+        }
 
 class ImageAnalyzer(ABC):
     image_path: str
-    file_name: str # file name without extension
+    file_name: str  # file name without extension
 
     def __init__(self, image_path: str):
         self.image_path = image_path
@@ -23,5 +32,5 @@ class ImageAnalyzer(ABC):
         pass
 
     @abstractmethod
-    def to_json(self) -> ImageDetails:
+    def get_image_details(self) -> ImageDetails:
         pass

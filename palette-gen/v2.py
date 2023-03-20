@@ -1,3 +1,4 @@
+import json
 import os
 
 import svgwrite
@@ -57,7 +58,7 @@ class ColourPalette(ImageAnalyzer):
         plot_colours_frequencies(self.colours, self.frequencies)
         plt.show()
 
-    def to_json(self) -> ImageDetails:
+    def get_image_details(self) -> ImageDetails:
         return ImageDetails(width=self.im.shape[1], height=self.im.shape[0], file_name=self.file_name,
                             colours=self.colours, thumbnail=self.thumbnail.tostring(), frequencies=self.frequencies)
 
@@ -314,8 +315,14 @@ if __name__ == '__main__':
         os.makedirs(thumbnail_dir)
 
     # export thumbnails for each image in the images directory
+    image_list = []
     for image_name in os.listdir(images_dir):
         image_path = os.path.join(images_dir, image_name)
         palette = ColourPalette(image_path)
+        image_list.append(palette.get_image_details().to_json())
         with open(os.path.join(thumbnail_dir, image_name.split(".")[0] + ".svg"), "w") as f:
             f.write(palette.thumbnail.tostring())
+
+    print(image_list)
+    with open("../thumbnails/palette_thumbnails.json", "w") as f:
+        json.dump(image_list, f)
