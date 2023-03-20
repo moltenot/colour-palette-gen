@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 
-from ..utils import ImageAnalyzer, ImageDetails
+from utils import ImageAnalyzer, ImageDetails
 
 
 def get_closest_colour(colour, colour_list):
@@ -307,8 +307,8 @@ if __name__ == '__main__':
     # palette = ColourPalette(image_path)
     # palette.export_thumbnail("buller.svg")
 
-    images_dir = "../../images"
-    thumbnail_dir = "../../thumbnails"
+    images_dir = "../images"
+    thumbnail_dir = "../thumbnails"
 
     if not os.path.exists(thumbnail_dir):
         os.makedirs(thumbnail_dir)
@@ -317,4 +317,5 @@ if __name__ == '__main__':
     for image_name in os.listdir(images_dir):
         image_path = os.path.join(images_dir, image_name)
         palette = ColourPalette(image_path)
-        palette.export_thumbnail(os.path.join(thumbnail_dir, image_name.split(".")[0] + ".svg"))
+        with open(os.path.join(thumbnail_dir, image_name.split(".")[0] + ".svg"), "w") as f:
+            f.write(palette.thumbnail.tostring())
