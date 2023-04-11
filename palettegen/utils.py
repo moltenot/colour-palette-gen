@@ -5,12 +5,13 @@ from dataclasses import dataclass
 
 @dataclass
 class ImageDetails:
-    width: int
-    height: int
-    file_name: str
-    colours: list[list[int]]
-    frequencies: list[float]
-    thumbnail: str  # SVG
+    width: int  # width of the raw image in pixels
+    height: int  # height of the raw image in pixels
+    file_name: str  # full name of the file
+    colours: list[list[int]]  # list of RGB colours (in range 0-255)
+    frequencies: list[float]  # floats of the same length as the colours, of which the floats all add to 1
+    thumbnail_name: str  # path to pixel thumbnail
+    svg_thumbnail_name: str  # path to svg thumbnail
 
     def to_json(self) -> dict:
         return {
@@ -19,7 +20,8 @@ class ImageDetails:
             'file_name': self.file_name,
             'colours': self.colours,
             'frequencies': self.frequencies,
-            'thumbnail': self.thumbnail,
+            'thumbnail_name': self.thumbnail_name,
+            'svg_thumbnail_name': self.svg_thumbnail_name,
         }
 
 

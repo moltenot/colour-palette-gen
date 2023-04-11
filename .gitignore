@@ -1,3 +1,5 @@
 .idea
 thumbnails
 dist
+images/*thumbnail*
+venv

@@ -3,6 +3,7 @@ import json
 import os
 
 import svgwrite
+import PIL
 from PIL import Image
 from skimage import measure
 from sklearn.cluster import KMeans
@@ -12,6 +13,29 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 
 from palettegen.utils import ImageAnalyzer, ImageDetails
+
+
+def downsize_image(image: PIL.Image) -> PIL.Image:
+    width, height = image.size
+
+    max_width = 900
+    max_height = 285
+
+    # calculate the new size based on both, and choose the larger one
+    wpercent = (max_width / float(width))
+    height_from_max_width = int((float(height) * float(wpercent)))
+    width_shape = (max_width, height_from_max_width)
+
+    hpercent = (max_height / float(height))
+    width_from_max_height = int((float(width) * float(hpercent)))
+    height_shape = (width_from_max_height, max_height)
+
+    # chose the highest resolution one
+    thumb_shape = height_shape
+    if (width_shape[0] > height_shape[0]):
+        thumb_shape = width_shape
+
+    return image.resize(thumb_shape, Image.Resampling.LANCZOS)
 
 
 def get_closest_colour(colour, colour_list):
@@ -37,7 +61,8 @@ class ColourPalette(ImageAnalyzer):
         super().__init__(image_path)
         print(f'getting colours from {image_path}')
         self.image_path = image_path
-        self.im = np.asarray(Image.open(image_path))[:, :, :3]
+        self.pil_image = Image.open(image_path)
+        self.im = np.asarray(self.pil_image)[:, :, :3]
         flat = decimate_image(self.im, 5000)
 
         s_time = time()
@@ -62,8 +87,23 @@ class ColourPalette(ImageAnalyzer):
         plt.show()
 
     def get_image_details(self) -> ImageDetails:
+        # write the svg thumbnail to a file in the same directory
+        basename = self.file_name.split(".")[0]
+        directory = os.path.dirname(self.image_path)
+        svg_thumbnail_name = f"{basename}_svg_thumbnail.svg"
+        thumbnail_name = f"{basename}_thumbnail.png"
+
+        # write the svg thumbnail
+        with open(os.path.join(directory, svg_thumbnail_name), "w") as svg_thumbnail:
+            svg_thumbnail.write(self.thumbnail.tostring())
+
+        # create and write the pixel thumbnail
+        pil_thumbnail = downsize_image(self.pil_image)
+        pil_thumbnail.save(os.path.join(directory, thumbnail_name))
+
         return ImageDetails(width=self.im.shape[1], height=self.im.shape[0], file_name=self.file_name,
-                            colours=self.colours, thumbnail=self.thumbnail.tostring(), frequencies=self.frequencies)
+                            colours=self.colours, svg_thumbnail_name=svg_thumbnail_name, thumbnail_name=thumbnail_name,
+                            frequencies=self.frequencies)
 
 
 def make_thumbnail(image_path, colours, frequencies) -> svgwrite.Drawing:
@@ -320,6 +360,10 @@ if __name__ == '__main__':
     # export thumbnails for each image in the images directory
     image_list = []
     for image_name in os.listdir(images_dir):
+
+        if "thumbnail" in image_name:
+            continue
+
         image_path = os.path.join(images_dir, image_name)
         palette = ColourPalette(image_path)
         image_list.append(palette.get_image_details().to_json())
