@@ -8,6 +8,6 @@ In version 2 this includes an algorithm to generate a small SVG thumbnail from t
 
 ## Package
 
-This is packaged as Python Package using the [flit build system](https://flit.pypa.io/en/stable/). 
+This is packaged as Python Package using the [flit build system](https://flit.pypa.io/en/stable/). To build the package you should have the virtualenv enabled, and call `flit build`, which will create an installable wheel in the dist sub-folder.
 
 Any colour palette generator should extend `utils.ImageAnalyzer` in order to have predictable inferences on each image.
